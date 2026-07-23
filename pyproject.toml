@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taskpipe"
+version = "0.1.0"
+description = "Cron-like pipeline scheduler with sequential/parallel task execution, failure recovery, and structured logging."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Sanchita Karki", email = "karkisanchu06@gmail.com" }
+]
+keywords = ["pipeline", "scheduler", "cron", "orchestration", "tasks", "automation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: Utilities",
+]
+
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+scheduled = [
+    "schedule>=1.2",
+    "croniter>=2.0",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "schedule>=1.2",
+    "croniter>=2.0",
+]
+
+[project.scripts]
+taskpipe = "taskpipe.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["taskpipe*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[project.urls]
+Homepage = "https://github.com/Sann842/taskpipe.git"

@@ -1,0 +1,39 @@
+# examples/parallel_checks.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# Example: Parallel health-check pipeline
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: System Health Checks
+description: Run health checks across services in parallel
+execution_mode: parallel
+max_workers: 4
+log_dir: logs/health
+log_level: INFO
+
+tasks:
+
+  - name: check_cpu
+    type: shell
+    command: "echo 'CPU:' && uptime"
+    on_failure: skip
+
+  - name: check_memory
+    type: shell
+    command: "echo 'Memory:' && free -h"
+    on_failure: skip
+
+  - name: check_disk
+    type: shell
+    command: "echo 'Disk:' && df -h /"
+    on_failure: skip
+
+  - name: check_processes
+    type: shell
+    command: "echo 'Top 5 processes:' && ps aux --sort=-%cpu | head -6"
+    on_failure: skip
+
+  - name: generate_report
+    type: shell
+    command: "echo 'Health check complete at:' && date"
+    depends_on: [check_cpu, check_memory, check_disk, check_processes]
+    on_failure: stop

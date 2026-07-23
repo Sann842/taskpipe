@@ -1,0 +1,65 @@
+# examples/etl_pipeline.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# Example: Sequential ETL pipeline with mixed task types and failure handling
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: ETL Daily Pipeline
+description: Extract, transform, and load data every weekday at 9am
+schedule: "0 9 * * 1-5"          # weekdays at 09:00
+execution_mode: sequential
+log_dir: logs/etl
+log_level: INFO
+timeout: 3600                     # 1-hour overall pipeline timeout
+
+tasks:
+
+  - name: check_disk_space
+    type: shell
+    command: "df -h / | awk 'NR==2 {print \"Disk usage: \" $5}'"
+    on_failure: stop
+
+  - name: create_output_dirs
+    type: shell
+    command: "mkdir -p /tmp/taskpipe_output/raw /tmp/taskpipe_output/processed"
+    depends_on: [check_disk_space]
+    on_failure: stop
+
+  - name: extract_data
+    type: shell
+    command: "echo 'Extracting data...' && sleep 1 && echo 'id,name,value' > /tmp/taskpipe_output/raw/data.csv && echo '1,alpha,100' >> /tmp/taskpipe_output/raw/data.csv && echo '2,beta,200' >> /tmp/taskpipe_output/raw/data.csv"
+    depends_on: [create_output_dirs]
+    timeout: 300
+    on_failure: retry
+    retry:
+      max_attempts: 3
+      backoff_seconds: 5
+      backoff_multiplier: 2.0
+
+  - name: validate_extract
+    type: shell
+    command: "wc -l /tmp/taskpipe_output/raw/data.csv && echo 'Validation passed'"
+    depends_on: [extract_data]
+    on_failure: stop
+
+  - name: transform_data
+    type: python
+    script: examples/transform.py
+    args: ["/tmp/taskpipe_output/raw/data.csv", "/tmp/taskpipe_output/processed/data.csv"]
+    depends_on: [validate_extract]
+    timeout: 600
+    on_failure: retry
+    retry:
+      max_attempts: 2
+      backoff_seconds: 10
+
+  - name: load_data
+    type: shell
+    command: "echo 'Loading data...' && cat /tmp/taskpipe_output/processed/data.csv && echo 'Load complete.'"
+    depends_on: [transform_data]
+    on_failure: stop
+
+  - name: cleanup
+    type: shell
+    command: "rm -rf /tmp/taskpipe_output && echo 'Cleaned up temp files.'"
+    depends_on: [load_data]
+    on_failure: skip           # non-critical — skip if cleanup fails
